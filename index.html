@@ -5,20 +5,39 @@
   <title>ドル円ニュース & FX学習ダッシュボード</title>
   <style>
     body { font-family: sans-serif; background: #f4f6f8; margin: 0; padding: 20px; color: #333; }
-    header { background: #1e293b; color: white; padding: 15px 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
-    .container { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 20px; }
-    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .news-item { border-bottom: 1px solid #eee; padding: 10px 0; }
-    .news-item:last-child { border: none; }
-    .tag { background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; }
-    .tooltip-word { color: #2563eb; cursor: pointer; text-decoration: underline dotted; }
+    header { background: #1a365d; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    h1 { margin: 0; font-size: 1.5rem; }
+    .rate-box { background: #2b6cb0; padding: 8px 16px; border-radius: 6px; cursor: pointer; user-select: none; transition: transform 0.1s; }
+    .rate-box:active { transform: scale(0.95); }
+    .container { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .news-item { padding: 12px 0; border-bottom: 1px solid #eee; }
+    .tag { background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-right: 8px; }
+    
+    /* ツールチップ用の見た目 */
+    .tooltip-word { border-bottom: 2px dashed #3182ce; color: #2b6cb0; font-weight: bold; cursor: help; position: relative; }
+    
+    /* 隠し演出用のスタイル */
+    .easter-egg-active { animation: rainbow 2s infinite; }
+    @keyframes rainbow {
+      0% { background: #1a365d; }
+      50% { background: #805ad5; }
+      100% { background: #1a365d; }
+    }
   </style>
 </head>
 <body>
 
-  <header>
+  <!-- 隠しメッセージ（開発者ツール F12 を開いた人だけが見られるイースターエッグ①） -->
+  <!-- 
+    ＼ 隠しメッセージを発見！ ／
+    ここまでコードを見てくれてありがとう！
+    KTNが本気でWeb開発＆QAを学んでいる証拠です。
+  -->
+
+  <header id="main-header">
     <h1>USD/JPY ニュース & 学習ダッシュボード</h1>
-    <div>現在レート: <strong>150.25 円</strong></div>
+    <div class="rate-box" id="rate-clicker">現在レート: <strong>150.25 円</strong></div>
   </header>
 
   <div class="container">
@@ -26,19 +45,70 @@
       <h2>最新ドル円ニュース（15分更新イメージ）</h2>
       <div class="news-item">
         <span class="tag">米金利</span>
-        <span>FRB高官の発言を受けて<span class="tooltip-word" title="タカ派：インフレを抑えるために利上げや高金利を維持しようとする積極的な姿勢のこと">タカ派</span>姿勢が強まり、円売りが加速。</span>
+        <span class="news-text">FRB高官の発言を受けてタカ派姿勢が強まり、円売りが加速。</span>
       </div>
       <div class="news-item">
         <span class="tag">日銀</span>
-        <span>植田総裁の会見を控え、市場は様子見ムード。</span>
+        <span class="news-text">市場ではハト派的な政策維持が予想される中、次回会合での発言に注目集まる。</span>
       </div>
     </main>
 
     <aside class="card">
       <h2>FX入門検定（準備中）</h2>
       <p>ここに単語テストや正答率ダッシュボードが入る予定やで！</p>
+      <div id="secret-message" style="display: none; margin-top: 15px; padding: 10px; background: #feb2b2; color: #9b2c2c; border-radius: 6px; font-weight: bold;">
+        🎉 裏モード解放！「相場は遊び心を持つ者が制す！」（KTN特別格言）
+      </div>
     </aside>
   </div>
+
+  <script>
+    // ==========================================
+    // 1. 動的ツールチップ（単語帳）の仕掛け
+    // ==========================================
+    
+    // 【単語帳データ】ここに単語と解説を登録しておけば自動反映される！
+    const dictionary = {
+      "タカ派": "インフレを抑えるために利上げや高金利を維持しようとする積極的な姿勢のこと。",
+      "ハト派": "景気を優先して利下げや金融緩和を好む慎重な姿勢のこと。",
+      "円売り": "日本円を売って他国通貨（米ドルなど）を買う取引のこと。"
+    };
+
+    // ニュース本文（.news-text）をすべて取得
+    const newsElements = document.querySelectorAll('.news-text');
+
+    newsElements.forEach(element => {
+      let text = element.innerHTML;
+      
+      // 単語帳にある言葉を探して、自動で <span class="tooltip-word" title="..."> に置換！
+      for (const [word, description] of Object.entries(dictionary)) {
+        if (text.includes(word)) {
+          const replacement = `<span class="tooltip-word" title="${word}：${description}">${word}</span>`;
+          text = text.replaceAll(word, replacement);
+        }
+      }
+      element.innerHTML = text;
+    });
+
+
+    // ==========================================
+    // 2. イースターエッグ（5回クリック）の仕掛け
+    // ==========================================
+    let clickCount = 0;
+    const rateBox = document.getElementById('rate-clicker');
+    const secretMsg = document.getElementById('secret-message');
+    const header = document.getElementById('main-header');
+
+    rateBox.addEventListener('click', () => {
+      clickCount++;
+      
+      if (clickCount === 5) {
+        secretMsg.style.display = 'block'; // 隠しメッセージを表示！
+        header.classList.add('easter-egg-active'); // ヘッダーの色が変わるアニメーション発動！
+        alert('🎉 隠しイースターエッグが解放されました！');
+      }
+    });
+  </script>
 
 </body>
 </html>
