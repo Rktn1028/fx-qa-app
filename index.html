@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ドル円ニュース & FX学習ダッシュボード</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f6f8; margin: 0; padding: 20px; color: #333; }
+    header { background: #1e293b; color: white; padding: 15px 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .container { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 20px; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .news-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+    .news-item:last-child { border: none; }
+    .tag { background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; }
+    .tooltip-word { color: #2563eb; cursor: pointer; text-decoration: underline dotted; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>USD/JPY ニュース & 学習ダッシュボード</h1>
+    <div>現在レート: <strong>150.25 円</strong></div>
+  </header>
+
+  <div class="container">
+    <main class="card">
+      <h2>最新ドル円ニュース（15分更新イメージ）</h2>
+      <div class="news-item">
+        <span class="tag">米金利</span>
+        <span>FRB高官の発言を受けて<span class="tooltip-word" title="タカ派：インフレを抑えるために利上げや高金利を維持しようとする積極的な姿勢のこと">タカ派</span>姿勢が強まり、円売りが加速。</span>
+      </div>
+      <div class="news-item">
+        <span class="tag">日銀</span>
+        <span>植田総裁の会見を控え、市場は様子見ムード。</span>
+      </div>
+    </main>
+
+    <aside class="card">
+      <h2>FX入門検定（準備中）</h2>
+      <p>ここに単語テストや正答率ダッシュボードが入る予定やで！</p>
+    </aside>
+  </div>
+
+</body>
+</html>
