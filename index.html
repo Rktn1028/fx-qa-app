@@ -2,113 +2,371 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>ドル円ニュース & FX学習ダッシュボード</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ドル円FX学習 & QAデベロッパーコンソール</title>
   <style>
-    body { font-family: sans-serif; background: #f4f6f8; margin: 0; padding: 20px; color: #333; }
-    header { background: #1a365d; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-    h1 { margin: 0; font-size: 1.5rem; }
-    .rate-box { background: #2b6cb0; padding: 8px 16px; border-radius: 6px; cursor: pointer; user-select: none; transition: transform 0.1s; }
-    .rate-box:active { transform: scale(0.95); }
-    .container { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .news-item { padding: 12px 0; border-bottom: 1px solid #eee; }
-    .tag { background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-right: 8px; }
-    
-    /* ツールチップ用の見た目 */
-    .tooltip-word { border-bottom: 2px dashed #3182ce; color: #2b6cb0; font-weight: bold; cursor: help; position: relative; }
-    
-    /* 隠し演出用のスタイル */
-    .easter-egg-active { animation: rainbow 2s infinite; }
-    @keyframes rainbow {
-      0% { background: #1a365d; }
-      50% { background: #805ad5; }
-      100% { background: #1a365d; }
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #020617;
+      border-bottom: 1px solid var(--border);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .logo-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .nav-tabs { display: flex; gap: 8px; }
+
+    .nav-btn {
+      background: #1e293b;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .nav-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    .secret-tab {
+      display: none;
+      border-color: var(--warning);
+      color: var(--warning);
+    }
+    .secret-tab.unlocked {
+      display: inline-block;
+      animation: pulse 1.5s infinite alternate;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+      100% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+    }
+
+    main {
+      flex: 1;
+      padding: 20px;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tab-content { display: none; height: 100%; }
+    .tab-content.active { display: block; }
+
+    #app-frame {
+      width: 100%;
+      height: 650px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+      color: var(--text-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .editor-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    textarea.code-editor {
+      width: 100%;
+      height: 480px;
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 15px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      resize: vertical;
+      line-height: 1.4;
+      outline: none;
+    }
+
+    .btn-action {
+      padding: 8px 16px;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.85rem;
+      transition: opacity 0.2s;
+    }
+    .btn-action:hover { opacity: 0.9; }
+
+    .btn-virtual { background: var(--primary); }
+    .btn-file { background: var(--accent); }
+
+    .terminal {
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 15px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9rem;
+      color: #38bdf8;
+      min-height: 300px;
+      white-space: pre-wrap;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--warning);
+      color: #000;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
   </style>
 </head>
 <body>
 
-  <!-- 隠しメッセージ（開発者ツール F12 を開いた人だけが見られるイースターエッグ①） -->
-  <!-- 
-    ＼ 隠しメッセージを発見！ ／
-    ここまでコードを見てくれてありがとう！
-    KTNが本気でWeb開発＆QAを学んでいる証拠です。
-  -->
-
-  <header id="main-header">
-    <h1>USD/JPY ニュース & 学習ダッシュボード</h1>
-    <div class="rate-box" id="rate-clicker">現在レート: <strong>150.25 円</strong></div>
+  <header>
+    <div class="logo-area">
+      <span class="logo-title">USD/JPY QA Portal</span>
+    </div>
+    
+    <nav class="nav-tabs">
+      <button class="nav-btn active" onclick="switchTab('dashboard')">🌐 FX Dashboard</button>
+      <button id="tab-vscode" class="nav-btn secret-tab" onclick="switchTab('vscode')">💻 Live Editor</button>
+      <button id="tab-github" class="nav-btn secret-tab" onclick="switchTab('github')">🐙 GitHub Console</button>
+    </nav>
   </header>
 
-  <div class="container">
-    <main class="card">
-      <h2>最新ドル円ニュース（15分更新イメージ）</h2>
-      <div class="news-item">
-        <span class="tag">米金利</span>
-        <span class="news-text">FRB高官の発言を受けてタカ派姿勢が強まり、円売りが加速。</span>
-      </div>
-      <div class="news-item">
-        <span class="tag">日銀</span>
-        <span class="news-text">市場ではハト派的な政策維持が予想される中、次回会合での発言に注目集まる。</span>
-      </div>
-    </main>
+  <main>
+    <!-- Tab 1: FX Dashboard -->
+    <div id="dashboard" class="tab-content active">
+      <iframe id="app-frame"></iframe>
+    </div>
 
-    <aside class="card">
-      <h2>FX入門検定（準備中）</h2>
-      <p>ここに単語テストや正答率ダッシュボードが入る予定やで！</p>
-      <div id="secret-message" style="display: none; margin-top: 15px; padding: 10px; background: #feb2b2; color: #9b2c2c; border-radius: 6px; font-weight: bold;">
-        🎉 裏モード解放！「相場は遊び心を持つ者が制す！」（KTN特別格言）
+    <!-- Tab 2: Live Code Editor -->
+    <div id="vscode" class="tab-content">
+      <div class="card editor-container">
+        <div class="card-title">
+          <span>index.html (ポータル全体ソースコード)</span>
+          <div class="btn-group">
+            <button class="btn-action btn-virtual" onclick="applyVirtualChanges()">⚡ ブラウザ上だけに適用（仮想反映）</button>
+            <button class="btn-action btn-file" onclick="saveToFile()">💾 実際の index.html に上書き保存</button>
+          </div>
+        </div>
+        <textarea id="code-input" class="code-editor" spellcheck="false"></textarea>
       </div>
-    </aside>
-  </div>
+    </div>
+
+    <!-- Tab 3: GitHub Console -->
+    <div id="github" class="tab-content">
+      <div class="card">
+        <div class="card-title">Playwright E2E Test Execution</div>
+        <button class="btn-action btn-virtual" style="margin-bottom:15px;" onclick="runPlaywright()">Run `npx playwright test`</button>
+        <div id="terminal-out" class="terminal">$ Ready to execute tests...</div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast">【裏モード起動】開発者＆QAコンソールが解放されました！</div>
 
   <script>
-    // ==========================================
-    // 1. 動的ツールチップ（単語帳）の仕掛け
-    // ==========================================
-    
-    // 【単語帳データ】ここに単語と解説を登録しておけば自動反映される！
-    const dictionary = {
-      "タカ派": "インフレを抑えるために利上げや高金利を維持しようとする積極的な姿勢のこと。",
-      "ハト派": "景気を優先して利下げや金融緩和を好む慎重な姿勢のこと。",
-      "円売り": "日本円を売って他国通貨（米ドルなど）を買う取引のこと。"
-    };
+    const editor = document.getElementById('code-input');
+    const iframe = document.getElementById('app-frame');
 
-    // ニュース本文（.news-text）をすべて取得
-    const newsElements = document.querySelectorAll('.news-text');
+    // ミニアプリのHTML
+    const miniappCode = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #fff; color: #333; }
+    .calc-box { border: 1px solid #ccc; padding: 15px; border-radius: 8px; max-width: 400px; }
+    input { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
+    button { background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+    .error { color: red; font-size: 0.85rem; display: none; }
+  </style>
+</head>
+<body>
+  <div class="calc-box">
+    <h2>ドル円 簡易計算機</h2>
+    <label>ロット数 (1ロット = 10,000通貨):</label>
+    <input type="text" id="lot-input" placeholder="例: 1.5">
+    <div id="error-msg" class="error">※半角数字で入力してください</div>
+    <button onclick="calculate()">必要証拠金を計算</button>
+    <h3 id="result" style="margin-top:15px;"></h3>
+  </div>
+  <script>
+    function calculate() {
+      const val = document.getElementById('lot-input').value;
+      const error = document.getElementById('error-msg');
+      const result = document.getElementById('result');
+      if (!val || isNaN(val) || val.trim() === '') {
+        error.style.display = 'block';
+        result.innerText = '';
+      } else {
+        error.style.display = 'none';
+        const margin = parseFloat(val) * 10000 * 155 / 25;
+        result.innerText = '必要証拠金: 約 ' + margin.toLocaleString() + ' 円';
+      }
+    }<\/script>
+</body>
+</html>`;
 
-    newsElements.forEach(element => {
-      let text = element.innerHTML;
+    window.addEventListener('DOMContentLoaded', () => {
+      // 親（ポータル本体）のコードをセット
+      const fullDoc = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      editor.value = localStorage.getItem('portal_full_code') || fullDoc;
       
-      // 単語帳にある言葉を探して、自動で <span class="tooltip-word" title="..."> に置換！
-      for (const [word, description] of Object.entries(dictionary)) {
-        if (text.includes(word)) {
-          const replacement = `<span class="tooltip-word" title="${word}：${description}">${word}</span>`;
-          text = text.replaceAll(word, replacement);
+      // iframeにはミニアプリを描画
+      renderIframe(miniappCode);
+    });
+
+    function renderIframe(code) {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(code);
+      doc.close();
+    }
+
+    function applyVirtualChanges() {
+      localStorage.setItem('portal_full_code', editor.value);
+      alert('【仮想反映】ブラウザ内にポータルコードを保持しました！');
+    }
+
+    let fileHandle = null;
+    async function saveToFile() {
+      const saveContent = editor.value;
+      try {
+        if ('showSaveFilePicker' in window) {
+          if (!fileHandle) {
+            fileHandle = await window.showSaveFilePicker({
+              suggestedName: 'index.html',
+              types: [{ description: 'HTML File', accept: {'text/html': ['.html']} }],
+            });
+          }
+          const writable = await fileHandle.createWritable();
+          await writable.write(saveContent);
+          await writable.close();
+          localStorage.setItem('portal_full_code', saveContent);
+          alert('【保存成功】index.html（ポータル全体）を上書き保存しました！');
+        } else {
+          const blob = new Blob([saveContent], { type: 'text/html' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'index.html';
+          a.click();
         }
+      } catch (err) {
+        if (err.name !== 'AbortError') console.error(err);
       }
-      element.innerHTML = text;
-    });
+    }
 
-
-    // ==========================================
-    // 2. イースターエッグ（5回クリック）の仕掛け
-    // ==========================================
-    let clickCount = 0;
-    const rateBox = document.getElementById('rate-clicker');
-    const secretMsg = document.getElementById('secret-message');
-    const header = document.getElementById('main-header');
-
-    rateBox.addEventListener('click', () => {
-      clickCount++;
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
       
-      if (clickCount === 5) {
-        secretMsg.style.display = 'block'; // 隠しメッセージを表示！
-        header.classList.add('easter-egg-active'); // ヘッダーの色が変わるアニメーション発動！
-        alert('🎉 隠しイースターエッグが解放されました！');
+      const btns = document.querySelectorAll('.nav-btn');
+      if (tabId === 'dashboard') btns[0].classList.add('active');
+      if (tabId === 'vscode') btns[1].classList.add('active');
+      if (tabId === 'github') btns[2].classList.add('active');
+    }
+
+    // コナミコマンド (↑↑↓↓←→←→ba)
+    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    let konamiIndex = 0;
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === konamiCode[konamiIndex].toLowerCase()) {
+        konamiIndex++;
+        if (konamiIndex === konamiCode.length) {
+          unlockDeveloperConsole();
+          konamiIndex = 0;
+        }
+      } else {
+        konamiIndex = 0;
       }
     });
-  </script>
 
+    function unlockDeveloperConsole() {
+      document.getElementById('tab-vscode').classList.add('unlocked');
+      document.getElementById('tab-github').classList.add('unlocked');
+      const toast = document.getElementById('toast');
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    }
+
+    function runPlaywright() {
+      const term = document.getElementById('terminal-out');
+      term.innerText = '$ npx playwright test calc-validation.spec.js\n\nRunning 6 tests using 4 workers...\n';
+      setTimeout(() => {
+        term.innerText += '  ✓ 全角スペース入力時にエラーが表示されるか (1.2s)\n';
+        term.innerText += '  ✓ アルファベット入力時にエラーが表示されるか (1.1s)\n\n';
+        term.innerText += '  6 passed (2.3s)\n\nTo open last HTML report run:\n  npx playwright show-report';
+      }, 1000);
+    }
+  </script>
 </body>
 </html>
