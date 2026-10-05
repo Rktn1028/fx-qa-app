@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ドル円 リアルタイムFX学習ボード</title>
+  <style>
+    :root {
+      --bg-color: #D9DFF9;          /* メイン背景（指定の薄水色） */
+      --sidebar-bg: #0f172a;        /* サイドバー（ダークネイビー） */
+      --card-bg: #0f172a;           /* メインコンテンツ内のカード */
+      --text-main: #0f172a;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --border-color: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* --------------------------------------------------
+       サイドバー スタイル（左固定ボタン対応）
+    -------------------------------------------------- */
+    #sidebar {
+      width: 240px;
+      background-color: var(--sidebar-bg);
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+      transition: width 0.3s ease;
+      overflow: hidden;
+      white-space: nowrap;
+      border-right: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    /* 折り畳み時のサイドバー幅 */
+    #sidebar.collapsed {
+      width: 64px;
+    }
+
+    .sidebar-header {
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      height: 60px;
+      gap: 10px;
+    }
+
+    /* トグルボタンを左端に固定（メニューアイコンの軸と揃える） */
+    .toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-light);
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      min-width: 28px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    .toggle-btn:hover { background: rgba(255,255,255,0.1); }
+
+    .sidebar-title {
+      font-weight: bold;
+      font-size: 1rem;
+      color: #38bdf8;
+      transition: opacity 0.2s;
+    }
+
+    #sidebar.collapsed .sidebar-title {
+      display: none;
+    }
+
+    .nav-list {
+      list-style: none;
+      padding: 10px 0;
+      margin: 0;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 18px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-light);
+    }
+
+    .nav-item.active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .nav-icon {
+      font-size: 1.2rem;
+      min-width: 28px;
+      text-align: center;
+    }
+
+    .nav-label {
+      transition: opacity 0.2s;
+      margin-left: 10px;
+    }
+
+    #sidebar.collapsed .nav-label {
+      display: none;
+    }
+
+    /* --------------------------------------------------
+       メインコンテンツ エリア
+    -------------------------------------------------- */
+    #main-content {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .view-panel {
+      display: none;
+    }
+    .view-panel.active {
+      display: block;
+    }
+
+    .page-header {
+      margin-bottom: 20px;
+    }
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--text-main);
+    }
+
+    /* --------------------------------------------------
+       為替レート（USD/JPY）画面 コンポーネント
+    -------------------------------------------------- */
+    .rate-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      color: var(--text-light);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border-color);
+    }
+
+    .card h3 {
+      font-size: 1.1rem;
+      color: #38bdf8;
+      margin-bottom: 15px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    /* リアルタイムボード表示 */
+    .rate-display {
+      text-align: center;
+      padding: 15px 0;
+    }
+    .pair-name {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .rate-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: var(--accent-green);
+      margin: 10px 0;
+      letter-spacing: 1px;
+    }
+    .rate-status {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* 注文・計算フォーム */
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: #1e293b;
+      color: #fff;
+      font-size: 0.95rem;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: 2px solid #38bdf8;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover {
+      background: var(--primary-hover);
+    }
+
+    .calc-result {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 6px;
+      background: #1e293b;
+      font-weight: bold;
+      text-align: center;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+/* --------------------------------------------------
+       為替ニュース画面 レイアウト & スタイル（独立スクロール対応）
+    -------------------------------------------------- */
+    .news-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px; /* 左：記事本文, 右：トピック（340px） */
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .news-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+/* メイン記事表示エリア */
+    .news-main-card {
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 160px);
+    }
+    .news-main-header {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .news-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .news-badge {
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .news-time {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .news-detail-title {
+      font-size: 1.3rem !important;
+      color: #f8fafc !important;
+      border-bottom: none !important;
+      padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+      line-height: 1.4;
+    }
+
+    /* 本文のみ独立スクロール設定 */
+    .news-body-scroll-area {
+      overflow-y: auto;
+      padding-right: 8px;
+      flex: 1;
+    }
+    .news-body-scroll-area p {
+      line-height: 1.7;
+      margin-bottom: 14px;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+
+    /* 右側トピック一覧 */
+    .news-sidebar {
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 160px);
+    }
+    .news-sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .news-sidebar-title {
+      font-size: 1rem !important;
+      color: #38bdf8 !important;
+      border-bottom: none !important;
+      margin-bottom: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    .topic-subtext {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: #1e293b;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .news-topic-scroll-area {
+      overflow-y: auto;
+      padding-right: 4px;
+      flex: 1;
+    }
+    .news-topic-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .news-topic-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: #1e293b;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .news-topic-item:hover {
+      border-color: #38bdf8;
+      background: #334155;
+    }
+    .news-topic-item.active {
+      border-color: var(--primary);
+      background: rgba(37, 99, 235, 0.2);
+    }
+    .topic-category {
+      font-size: 0.7rem;
+      color: #38bdf8;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .topic-title {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      line-height: 1.3;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .topic-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: block;
+      text-align: right;
+    }
+
+    /* カスタムスクロールバー（両エリア共通） */
+    .news-body-scroll-area::-webkit-scrollbar,
+    .news-topic-scroll-area::-webkit-scrollbar {
+      width: 6px;
+    }
+    .news-body-scroll-area::-webkit-scrollbar-thumb,
+    .news-topic-scroll-area::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+
+    /* 右側トピック一覧エリア（独立スクロール設定） */
+    .news-sidebar {
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 160px);
+    }
+    .news-sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .news-sidebar-title {
+      font-size: 1rem !important;
+      color: #38bdf8 !important;
+      border-bottom: none !important;
+      margin-bottom: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    .topic-subtext {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: #1e293b;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .news-topic-scroll-area {
+      overflow-y: auto;
+      padding-right: 4px;
+      flex: 1;
+    }
+    .news-topic-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .news-topic-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: #1e293b;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .news-topic-item:hover {
+      border-color: #38bdf8;
+      background: #334155;
+    }
+    .news-topic-item.active {
+      border-color: var(--primary);
+      background: rgba(37, 99, 235, 0.2);
+    }
+    .topic-category {
+      font-size: 0.7rem;
+      color: #38bdf8;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .topic-title {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      line-height: 1.3;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .topic-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: block;
+      text-align: right;
+    }
+
+    /* レスポンシブ（画面が狭いときは1列に） */
+    @media (max-width: 900px) {
+      .news-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* メイン記事表示 */
+    .news-main-card {
+      min-height: 400px;
+    }
+    .news-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .news-badge {
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .news-time {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .news-detail-title {
+      font-size: 1.3rem !important;
+      color: #f8fafc !important;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px !important;
+      margin-bottom: 16px !important;
+      line-height: 1.4;
+    }
+    .news-body p {
+      line-height: 1.7;
+      margin-bottom: 14px;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+
+    /* 右側トピック一覧 */
+    .news-sidebar-title {
+      font-size: 1rem !important;
+      margin-bottom: 10px !important;
+    }
+    .news-topic-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .news-topic-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: #1e293b;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .news-topic-item:hover {
+      border-color: #38bdf8;
+      background: #334155;
+    }
+    .news-topic-item.active {
+      border-color: var(--primary);
+      background: rgba(37, 99, 235, 0.2);
+    }
+    .topic-category {
+      font-size: 0.7rem;
+      color: #38bdf8;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .topic-title {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      line-height: 1.3;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .topic-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: block;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 折り畳み可能サイドバー -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <button class="toggle-btn" id="toggle-sidebar-btn" title="サイドバー開閉">☰</button>
+      <span class="sidebar-title">FX QA Portal</span>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item active" onclick="switchView('rate', event)">
+        <span class="nav-icon">💱</span>
+        <span class="nav-label">為替レート（USD/JPY）</span>
+      </li>
+      <li class="nav-item" onclick="switchView('news', event)">
+        <span class="nav-icon">📰</span>
+        <span class="nav-label">為替ニュース</span>
+      </li>
+      <li class="nav-item" onclick="switchView('quiz', event)">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">FX検定</span>
+      </li>
+      <li class="nav-item" onclick="switchView('wordbook', event)">
+        <span class="nav-icon">📖</span>
+        <span class="nav-label">単語帳</span>
+      </li>
+      <li class="nav-item" onclick="switchView('dashboard', event)">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">ダッシュボード</span>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- 2. メインコンテンツエリア -->
+  <main id="main-content">
+
+    <!-- メニュー①：為替レート（USD/JPY）画面 -->
+    <section id="view-rate" class="view-panel active">
+      <div class="page-header">
+        <h2 class="page-title">USD/JPY 為替レート & 簡易シミュレータ</h2>
+      </div>
+
+      <div class="rate-grid">
+        <!-- リアルタイムレートカード -->
+        <div class="card">
+          <h3>現在のリアルタイムレート</h3>
+          <div class="rate-display">
+            <div class="pair-name">米ドル / 日本円 (USD/JPY)</div>
+            <div class="rate-value" id="current-rate">150.25</div>
+            <div class="rate-status">更新間隔: リアルタイム (自動変動)</div>
+          </div>
+          <button class="btn-submit" style="background:#334155;" onclick="refreshRate()">🔄 手動更新</button>
+        </div>
+
+        <!-- 簡易換算・トレード試算カード -->
+        <div class="card">
+          <h3>通貨換算 / トレード試算</h3>
+          <div class="form-group">
+            <label for="calc-type">取引種別</label>
+            <select id="calc-type">
+              <option value="usd-to-jpy">USD ➔ JPY (ドル買い・円売り)</option>
+              <option value="jpy-to-usd">JPY ➔ USD (円買い・ドル売り)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="amount-input">金額 (取引量)</label>
+            <input type="text" id="amount-input" placeholder="例: 1000 (ドルまたは円)">
+          </div>
+          <button class="btn-submit" id="calc-btn">換算実行</button>
+          <div class="calc-result" id="calc-result-box">
+            <span style="color:var(--text-muted);">金額を入力して換算ボタンを押してください</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+<!-- メニュー②：為替ニュース -->
+    <section id="view-news" class="view-panel">
+      <div class="page-header">
+        <h2 class="page-title">為替ニュース & マーケット動向</h2>
+      </div>
+
+      <!-- ニュース専用レイアウト（メイン記事 + 右側トピック一覧） -->
+      <div class="news-layout">
+        
+<!-- 左側：選択中のニュース本文表示エリア -->
+        <article class="news-main-card card">
+          <!-- 固定エリア：ヘッダー＆タイトル -->
+          <div class="news-main-header">
+            <div class="news-header">
+              <span class="news-badge" id="news-detail-category">市況・分析</span>
+              <span class="news-time" id="news-detail-time">2026/10/05 18:30</span>
+            </div>
+            <h3 class="news-detail-title" id="news-detail-title">米雇用統計を受けたドル円の最新展望：150円台半ばで攻防展開</h3>
+          </div>
+          
+          <!-- スクロールエリア：本文のみ -->
+          <div class="news-body-scroll-area" id="news-detail-body">
+            <p>本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。</p>
+            <p>日銀の追加利上げ観測とFRBの利下げペースを巡る思惑が交錯しており、テクニカル的にも151.00円の上値抵抗線を突破できるかが注目されています。</p>
+            <p>市場参加者の間では、今週後半に予定されている米CPI（消費者物価指数）の結果を見極めたいとの声が多く、短期的なもみ合いが続く可能性があります。</p>
+          </div>
+        </article>
+
+<!-- 右側：トピック一覧サイドバー -->
+        <aside class="news-sidebar card">
+          <div class="news-sidebar-header">
+            <h3 class="news-sidebar-title">最新トピック</h3>
+            <span class="topic-subtext">過去24時間</span>
+          </div>
+          <div class="news-topic-scroll-area">
+            <ul class="news-topic-list" id="news-topic-list">
+              <li class="news-topic-item active" onclick="selectNews(0)">
+                <span class="topic-category">市況・分析</span>
+                <div class="topic-title">米雇用統計を受けたドル円の最新展望：150円台半ばで攻防展開</div>
+                <span class="topic-time">18:30</span>
+              </li>
+              <li class="news-topic-item" onclick="selectNews(1)">
+                <span class="topic-category">日銀動向</span>
+                <div class="topic-title">日銀総裁発言で円高圧力が強まる場面も、150円割れは回避</div>
+                <span class="topic-time">16:15</span>
+              </li>
+              <li class="news-topic-item" onclick="selectNews(2)">
+                <span class="topic-category">海外中銀</span>
+                <div class="topic-title">FRB高官「急速な利下げには慎重であるべき」姿勢を示す</div>
+                <span class="topic-time">14:00</span>
+              </li>
+              <li class="news-topic-item" onclick="selectNews(3)">
+                <span class="topic-category">初心者解説</span>
+                <div class="topic-title">【解説】なぜ金利が上がると通貨が高くなるのか？ドル円で学ぶ基礎知識</div>
+                <span class="topic-time">10:00</span>
+              </li>
+              <li class="news-topic-item" onclick="selectNews(4)">
+                <span class="topic-category">東京市場</span>
+                <div class="topic-title">東京外国為替市場：ドル円は150.10円挟みで小動き続く</div>
+                <span class="topic-time">09:15</span>
+              </li>
+              <li class="news-topic-item" onclick="selectNews(5)">
+                <span class="topic-category">海外市場</span>
+                <div class="topic-title">NY市場回顧：米長期金利の上昇を支えにドル買い優勢</div>
+                <span class="topic-time">昨 22:45</span>
+              </li>
+            </ul>
+          </div>
+        </aside>
+
+      </div>
+    </section>
+
+    <!-- メニュー③：FX検定（準備中） -->
+    <section id="view-quiz" class="view-panel">
+      <div class="page-header"><h2 class="page-title">FX検定</h2></div>
+      <div class="card"><p>※ 次のステップで実装予定やで！</p></div>
+    </section>
+
+    <!-- メニュー④：単語帳（準備中） -->
+    <section id="view-wordbook" class="view-panel">
+      <div class="page-header"><h2 class="page-title">単語帳</h2></div>
+      <div class="card"><p>※ 次のステップで実装予定やで！</p></div>
+    </section>
+
+    <!-- メニュー⑤：ダッシュボード（準備中） -->
+    <section id="view-dashboard" class="view-panel">
+      <div class="page-header"><h2 class="page-title">ダッシュボード</h2></div>
+      <div class="card"><p>※ 次のステップで実装予定やで！</p></div>
+    </section>
+
+  </main>
+
+<script>
+    // 1. サイドバー開閉トグル処理
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('toggle-sidebar-btn');
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+    });
+
+    // 2. メニュー（パネル）切り替え処理
+    function switchView(viewKey, event) {
+      document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
+      const targetPanel = document.getElementById(`view-${viewKey}`);
+      if (targetPanel) targetPanel.classList.add('active');
+
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+      }
+    }
+
+    // 3. レート関連ロジック
+    let currentRate = 150.25;
+
+    function refreshRate() {
+      const delta = (Math.random() - 0.5) * 0.4;
+      currentRate = Number((currentRate + delta).toFixed(2));
+      const rateEl = document.getElementById('current-rate');
+      rateEl.innerText = currentRate.toFixed(2);
+      
+      rateEl.style.color = delta >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+    }
+
+    // 4. 換算計算機能
+    document.getElementById('calc-btn').addEventListener('click', () => {
+      const type = document.getElementById('calc-type').value;
+      const inputVal = document.getElementById('amount-input').value.trim();
+      const resultBox = document.getElementById('calc-result-box');
+
+      if (!inputVal || !/^[0-9]+(\.[0-9]+)?$/.test(inputVal)) {
+        resultBox.style.color = 'var(--accent-red)';
+        resultBox.innerText = 'エラー: 半角数字を入力してください';
+        return;
+      }
+
+      const num = Number(inputVal);
+      resultBox.style.color = 'var(--accent-green)';
+
+      if (type === 'usd-to-jpy') {
+        const jpy = (num * currentRate).toLocaleString(undefined, {maximumFractionDigits: 0});
+        resultBox.innerText = `${num.toLocaleString()} USD ➔ ${jpy} JPY`;
+      } else {
+        const usd = (num / currentRate).toFixed(2);
+        resultBox.innerText = `${num.toLocaleString()} JPY ➔ ${usd} USD`;
+      }
+    });
+
+    // 5. 為替ニュースモックデータ & 切り替え処理
+    const newsData = [
+      {
+        category: "市況・分析",
+        time: "2026/10/05 18:30",
+        title: "米雇用統計を受けたドル円の最新展望：150円台半ばで攻防展開",
+        body: [
+          "本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。",
+          "本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。",
+          "本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。",
+          "本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。",
+          "本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。",
+          "本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。",
+          "本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。",
+          "本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。",
+          "本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。",
+          "本日のドル円は、米国の雇用統計発表を受けてインフレ懸念が再燃し、一時150.80円付近まで買いが進む展開となりました。",
+          "日銀の追加利上げ観測とFRBの利下げペースを巡る思惑が交錯しており、テクニカル的にも151.00円の上値抵抗線を突破できるかが注目されています。",
+          "市場参加者の間では、今週後半に予定されている米CPI（消費者物価指数）の結果を見極めたいとの声が多く、短期的なもみ合いが続く可能性があります。"        
+        ]
+      },
+      {
+        category: "日銀動向",
+        time: "2026/10/05 16:15",
+        title: "日銀総裁発言で円高圧力が強まる場面も、150円割れは回避",
+        body: [
+          "日銀総裁の金融政策に関する定期発言を受け、市場では年内の追加利上げを織り込む動きから一時的に強い円買い反応が見られました。",
+          "しかし、米長期金利の根強い高止まりが下値を支え、149.80円ラインをテストした後は素早く150.20円付近まで買い戻されています。",
+          "今後も政策金利差を意識した取引が中心となる見通しです。"
+        ]
+      },
+      {
+        category: "海外中銀",
+        time: "2026/10/05 14:00",
+        title: "FRB高官「急速な利下げには慎重であるべき」姿勢を示す",
+        body: [
+          "米連邦準備制度理事会（FRB）の高官は本日の講演で、労働市場の堅調さとサービスインフレの粘着性を理由に、急速な金融緩和には慎重姿勢を示しました。",
+          "このタカ派寄り（金利引き上げ・維持に積極的）な発言を受けてドルが買われ、主要通貨に対してドル高のトレンドが一段と強まっています。"
+        ]
+      },
+      {
+        category: "初心者解説",
+        time: "2026/10/05 10:00",
+        title: "【解説】なぜ金利が上がると通貨が高くなるのか？ドル円で学ぶ基礎知識",
+        body: [
+          "FX取引において「金利差」は最も基本的な価格変動要因の1つです。一般に、利回りが高い通貨にお金が集まりやすいため、金利が高い国の通貨は買われやすくなります。",
+          "例えば米国の金利が5%で日本の金利が0.25%の場合、ドルを持っている方が利息が得られるため「ドル買い・円売り」の圧力が働きやすくなります。"
+        ]
+      },
+      {
+        category: "東京市場",
+        time: "2026/10/05 09:15",
+        title: "東京外国為替市場：ドル円は150.10円挟みで小動き続く",
+        body: [
+          "週明けの東京外国為替市場で、ドル円は150.10円前後の狭いレンジでのもみ合いとなっています。",
+          "五十日（ごとおび）に伴う実需のドル買いが散見されるものの、追随する動きは限定的で、海外市場の動きを待つ展開です。"
+        ]
+      },
+      {
+        category: "海外市場",
+        time: "2026/10/04 22:45",
+        title: "NY市場回顧：米長期金利の上昇を支えにドル買い優勢",
+        body: [
+          "前日のNY市場では、良好な米経済指標を受けて長期金利が上昇し、ドル円は150円台を回復して引き引けました。"
+        ]
+      }
+    ];
+
+    function selectNews(index) {
+      const data = newsData[index];
+      if (!data) return;
+
+      // 記事詳細の表示更新
+      document.getElementById('news-detail-category').innerText = data.category;
+      document.getElementById('news-detail-time').innerText = data.time;
+      document.getElementById('news-detail-title').innerText = data.title;
+      
+      const bodyEl = document.getElementById('news-detail-body');
+      bodyEl.innerHTML = data.body.map(p => `<p>${p}</p>`).join('');
+
+      // トピック一覧のアクティブ表示切替
+      const topicItems = document.querySelectorAll('.news-topic-item');
+      topicItems.forEach((item, idx) => {
+        if (idx === index) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+  </script>
+</body>
+</html>
